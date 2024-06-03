@@ -1,0 +1,17 @@
+Advanced Data Management Project notes:
+
+put all code in the query panel with comments to make going line by line easier
+
+you are making two different tables: a detailed table and summary table
+
+when report talks about detail vs summary they are discussing the two tables
+
+Section A:
+Create the business question
+
+Detailed Table:
+The detailed table will end up containing every record that is relevant to the question you are asking.
+Likely to have tons of rows as it is all of the data!
+
+Summary Table:
+Contains the answer to the question you are asking. That should be relatively limited data
