@@ -6,6 +6,7 @@ you are making two different tables: a detailed table and summary table
 
 when report talks about detail vs summary they are discussing the two tables
 
+
 Section A:
 Create the business question
 

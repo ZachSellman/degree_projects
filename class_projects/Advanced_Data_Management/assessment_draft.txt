@@ -2,15 +2,25 @@
 
 
 Section A: Create the business question
+    Question: How often has each rating been rented at each location?
 
     1. Identify the specific fields that will be included in the DETAILED table and the SUMMARY table
+    Detailed: film.film_id, film.title, film.rating, rental.rental_id, rental.inventory_id, inventory.store_id
+    Summary: rating, fn_store_name(store_id) AS store, COUNT(rating) AS total
+
+    I need a details table that has the film_ids and the inventory_id's associated with them.
+
 
     2. Describe the types of data fields used for the report
 
-    3. Identify at least two specific tables from dataset that will privide the needed data
+
+    3. Identify at least TWO SPECIFIC TABLES from dataset that will provide the needed data
+    rental, inventory, film
 
     4. Identify at least one field that will require a custom transformation with user defined function
     and why it needs to be transformed (like a emp_name_id field changing to Employees for clarity)
+
+    I need to transform the store_id field to be more presentable and easily readable at a glance.
 
     5. Explain the different business uses of the detailed table and summary table 
 
@@ -19,21 +29,124 @@ Section A: Create the business question
 
 
 B.  Provide original code for function(s) in text format that perform the transformation(s) you identified in part A4.
- 
+
+-- Function which reformats the store_id from a single int to a more descriptive string
+CREATE OR REPLACE FUNCTION fn_store_name(store_id SMALLINT)
+RETURNS VARCHAR
+AS
+$$
+begin
+	return CONCAT('Store ', store_id);
+end;
+$$
+language plpgsql;
+
+
 
 C.  Provide original SQL code in a text format that creates the detailed and summary tables to hold your report table sections.
- 
+
+ Detailed:
+
+ -- Query to create new detailed table rented_films:
+DROP TABLE IF EXISTS rented_films;
+
+SELECT f.film_id, f.title, f.rating, r.rental_id, r.inventory_id, i.store_id
+	INTO TABLE rented_films
+FROM inventory i
+INNER JOIN film f ON f.film_id = i.film_id
+INNER JOIN rental r ON r.inventory_id = i.inventory_id
+ORDER BY f.film_id;
+
+
+Summary:
+
+-- Queries to create new summary table named rating_by_store:
+DROP TABLE IF EXISTS rating_by_store;
+
+SELECT rating, fn_store_name(store_id) AS store, COUNT(rating) AS total
+	INTO TABLE rating_by_store
+FROM rented_films
+GROUP BY store, rating
+ORDER BY store, total DESC;
+
+
 
 D.  Provide an original SQL query in a text format that will extract the raw data needed for the detailed section of your report from the source database.
  
 
 E.  Provide original SQL code in a text format that creates a trigger on the detailed table of the report that will continually update the summary table as data is added to the detailed table.
  
+CREATE OR REPLACE FUNCTION update_rating_by_store()
+	RETURNS TRIGGER
+	LANGUAGE plpgsql
+AS
+$$
+BEGIN
+DELETE FROM rating_by_store;
+INSERT INTO rating_by_store
+SELECT rating, fn_store_name(store_id) AS store, COUNT(rating) AS total
+FROM rented_films
+GROUP BY store, rating
+ORDER BY store, total DESC;
+RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS update_rating_by_store_trigger ON rented_films;
+
+CREATE TRIGGER update_rating_by_store_trigger
+	AFTER INSERT OR DELETE OR UPDATE
+	ON rented_films
+	FOR EACH STATEMENT
+EXECUTE PROCEDURE update_rating_by_store();
+
+
+-- Functions below are for testing the implemented trigger:
+INSERT INTO rented_films VALUES(1, 'Academy Dinosaur', 'PG', 99999, 3, 1);
+SELECT * FROM rented_films WHERE title = 'Academy Dinosaur';
+SELECT * FROM rating_by_store WHERE rating = 'PG';
+
 
 F.  Provide an original stored procedure in a text format that can be used to refresh the data in both the detailed table and summary table. The procedure should clear the contents of the detailed table and summary table and perform the raw data extraction from part D.
 
-1.  Identify a relevant job scheduling tool that can be used to automate the stored procedure.
- 
+
+-- Create procedure to update both details and summary tables:
+CREATE OR REPLACE PROCEDURE create_rented_films_ratings_tables()
+LANGUAGE plpgsql
+AS 
+$$
+BEGIN
+
+-- Remove data from detail table and fetch fresh data
+DELETE FROM rented_films;
+INSERT INTO rented_films
+	SELECT f.film_id, f.title, f.rating, r.rental_id, r.inventory_id, i.store_id
+FROM inventory i
+INNER JOIN film f ON f.film_id = i.film_id
+INNER JOIN rental r ON r.inventory_id = i.inventory_id
+ORDER BY f.film_id;
+
+-- Remove data from summary table and fetch fresh data
+DELETE FROM rating_by_store;
+INSERT INTO rating_by_store
+	SELECT rating, fn_store_name(store_id) AS store, COUNT(rating) AS total
+FROM rented_films
+GROUP BY store, rating
+ORDER BY store, total DESC;
+
+RETURN;
+END;
+$$;
+
+-- Queries below are for testing the new procedure above:
+DELETE FROM rented_films;
+SELECT * FROM rented_films;
+DELETE FROM rating_by_store;
+SELECT * FROM rating_by_store;
+CALL create_rented_films_ratings_tables();
+
+    1.  Identify a relevant job scheduling tool that can be used to automate the stored procedure.
+    THIS DOES NOT MEAN CREATE IT!!!! IT MEANS TALK ABOUT IT!!!
 
 G.  Provide a Panopto video recording that includes the presenter and a vocalized demonstration of the functionality of the code used for the analysis.
  
