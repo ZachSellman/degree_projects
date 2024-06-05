@@ -1,5 +1,15 @@
 
+Project summary:
 
+Retail locations differ in many ways from one another. One of the most significant for a business to be aware of is the differences in 
+customer preferences. While certain blockbuster movies will always be popular, it's important for a DVD Rental Company to pay attention 
+to the demographics they serve most frequently. The question "Which of our MPA ratings categories is most popular at each store location?" is difficult to answer. 
+This report, generated from the dvdrental database, shows the total number of rentals of each MPA rating based on each store location. This 
+provides leadership with information that may help when deciding between upcoming options, or whether to sell off older stock. For example, 
+in my summary table, one can see that PG-13 rated movies are significantly more popular, while G rated movies are noticably less so. This 
+information is actionable as leadership could decide to increase the PG-13 stock while decreasing the number of rated G options, leading 
+to an potential increase in overall rentals. The queries, procedures, and triggers included in this project provide the needed tools to quickly 
+answer this question in the future as well.
 
 Section A: Create the business question
     Question: How often has each rating been rented at each location?
@@ -160,3 +170,27 @@ H.  Acknowledge all utilized sources, including any sources of third-party code,
  
 
 I.  Demonstrate professional communication in the content and presentation of your submission.
+
+
+
+
+NEW function still gotta finish up:
+
+
+
+DECLARE 
+	_stores_list := (SELECT DISTINCT store FROM rating_by_store)
+	_ratings_list := (SELECT DISTINCT rating FROM rating_by_store)
+BEGIN
+FOR _s IN _stores_list LOOP
+	FOR _r IN _ratings_list LOOP
+		UPDATE rating_by_store
+			SET percentage = (
+		SELECT
+    		CONCAT(round(100 * total / SUM(total) OVER (), 2), '%')
+		)
+		FROM rating_by_store
+		WHERE store = _s AND rating = _r;
+	END LOOP;
+END LOOP;
+END;
