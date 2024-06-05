@@ -68,7 +68,7 @@ BEGIN
     FOR rec IN SELECT * FROM store1_ratings LOOP
         UPDATE store1_ratings
         SET percentage = calc_percentage(rec.total, total_sum) -- Uses custom function calc_percentage()
-        WHERE rating = rec.rating AND "store id" = rec."store id";
+        WHERE rating = rec.rating;
     END LOOP;
 	RETURN NEW;
 END$$;
